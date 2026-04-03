@@ -1,22 +1,30 @@
 import streamlit as st
 import requests
 import pandas as pd
-import numpy as np
 
+st.set_page_config(page_title="Kino AI", page_icon="🎰")
 st.title("🎰 Kino AI Predictor")
-st.write("Η μηχανή μελετάει τα Excel σου και προτείνει...")
 
-# Εδώ θα συνδεθεί ο φάκελος Drive σου στο επόμενο βήμα
-folder_url = "https://drive.google.com/drive/folders/1QHxCd74c5D9U7TvLdyt-GRArbSRuLsZn"
-
+# Λήψη δεδομένων από ΟΠΑΠ με ασφάλεια
 def get_last_draw():
-    # Παίρνει την τελευταία κλήρωση από τον ΟΠΑΠ
-    api_url = "https://api.opap.gr/draws/v3.0/1100/last-n/1"
-    res = requests.get(api_url).json()
-    return res[0]['winningNumbers']['list']
+    try:
+        api_url = "https://api.opap.gr/draws/v3.0/1100/last-n/1"
+        response = requests.get(api_url)
+        data = response.json()
+        return data[0]['winningNumbers']['list']
+    except:
+        return None
 
-last_numbers = get_last_draw()
-st.subheader(f"Τελευταία Κλήρωση: {last_numbers}")
+numbers = get_last_draw()
 
-# Εδώ θα μπει το Neural Network (LSTM) μόλις συνδέσουμε τα δεδομένα
-st.success("Η μηχανή είναι Online και περιμένει σήμα σιγουριάς > 88%")
+if numbers:
+    st.subheader(f"Τελευταία Κλήρωση: {numbers}")
+else:
+    st.warning("Περιμένω δεδομένα από τον ΟΠΑΠ...")
+
+st.divider()
+st.info("💡 Η μηχανή αναλύει τα Excel σου στο Drive για να βρει μοτίβα.")
+
+# Εδώ θα εμφανίζονται οι προτάσεις όταν η σιγουριά είναι > 88%
+st.write("### 🎯 Προγνωστικά AI")
+st.write("Αναμονή για την επόμενη κλήρωση... (Σιγουριά: 0%)")
