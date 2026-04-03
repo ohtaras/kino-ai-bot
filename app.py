@@ -29,7 +29,7 @@ def get_massive_history(active_id, target_count=1000):
             
             if response.status_code == 200:
                 data = response.json()
-                if data:π
+                if data:
                     for draw in data:
                         if 'winningNumbers' in draw:
                             all_draws.append(draw['winningNumbers']['list'])
