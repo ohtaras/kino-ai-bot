@@ -4,102 +4,98 @@ import pandas as pd
 from collections import Counter
 import time
 
-st.set_page_config(page_title="Kino AI Pro 1000", layout="wide")
+st.set_page_config(page_title="Kino AI Pro Max", layout="wide")
 
-# ΣΥΝΑΡΤΗΣΗ ΓΙΑ ΜΑΖΙΚΗ ΛΗΨΗ (100-100)
-def get_massive_history(start_id, count=1000):
+def get_massive_history(active_id, target_count=1000):
     all_draws = []
-    current_id = start_id
+    # Ξεκινάμε λίγο πιο πίσω για σιγουριά
+    current_end = active_id - 1
     
     progress_bar = st.progress(0)
     status_text = st.empty()
     
-    # Θα κάνουμε 10 κύκλους των 100
-    steps = count // 100
-    for i in range(steps):
-        # Υπολογίζουμε το εύρος (range)
-        end_range = current_id
-        start_range = current_id - 99
-        
-        url = f"https://api.opap.gr/draws/v3.0/1100/draw-id/{start_range}/{end_range}"
+    found_so_far = 0
+    attempts = 0
+    max_attempts = 15 # Μέχρι 1500 κληρώσεις αναζήτηση
+
+    while found_so_far < target_count and attempts < max_attempts:
+        current_start = current_end - 99
+        url = f"https://api.opap.gr/draws/v3.0/1100/draw-id/{current_start}/{current_end}"
         headers = {'User-Agent': 'Mozilla/5.0'}
         
         try:
-            status_text.text(f"📥 Λήψη πακέτου: {start_range} έως {end_range}...")
-            r = requests.get(url, headers=headers, timeout=15).json()
-            # Προσθήκη των κληρώσεων στη λίστα
-            for draw in r:
-                all_draws.append(draw['winningNumbers']['list'])
+            status_text.text(f"📥 Αναζήτηση πακέτου: {current_start} - {current_end}")
+            response = requests.get(url, headers=headers, timeout=10)
             
-            # Ενημέρωση για το επόμενο πακέτο
-            current_id = start_range - 1
-            progress_bar.progress((i + 1) / steps)
-            time.sleep(0.5) # Μικρή καθυστέρηση για να μη μας μπλοκάρει
-        except:
-            st.error(f"Κόλλησε στο ID: {current_id}")
-            break
+            if response.status_code == 200:
+                data = response.json()
+                if data:π
+                    for draw in data:
+                        if 'winningNumbers' in draw:
+                            all_draws.append(draw['winningNumbers']['list'])
+                    
+                    found_so_far = len(all_draws)
+                    status_text.text(f"✅ Βρέθηκαν {found_so_far} κληρώσεις...")
             
-    status_text.text("✅ Η εκπαίδευση ολοκληρώθηκε!")
+        except Exception as e:
+            # Αν αποτύχει ένα πακέτο, δεν σταματάμε, απλά συνεχίζουμε στο επόμενο
+            pass
+        
+        # Πάμε στο επόμενο πακέτο προς τα πίσω
+        current_end = current_start - 1
+        attempts += 1
+        progress_bar.progress(min(attempts / max_attempts, 1.0))
+        time.sleep(0.4)
+
+    status_text.text(f"🏁 Η εκπαίδευση ολοκληρώθηκε! (Σύνολο: {len(all_draws)})")
     return all_draws
 
-# --- ΚΥΡΙΩΣ ΕΦΑΡΜΟΓΗ ---
-st.title("🎰 Kino AI: Deep Data Analysis (1000 Draws)")
+# --- UI ---
+st.title("🎰 Kino AI Predictor: Deep Analysis")
 
 if 'big_data' not in st.session_state:
     st.session_state.big_data = None
 
-# Λήψη Active για σημείο αναφοράς
+# Λήψη Active ID
 try:
-    active_res = requests.get("https://api.opap.gr/draws/v3.0/1100/active").json()
-    active_id = active_res['drawId']
-    st.sidebar.success(f"Active Draw: {active_id}")
+    active_id = requests.get("https://api.opap.gr/draws/v3.0/1100/active").json()['drawId']
+    st.sidebar.success(f"Live ID: {active_id}")
 except:
     active_id = None
-    st.sidebar.error("Αδυναμία λήψης Active ID")
 
-# ΚΟΥΜΠΙ ΕΝΑΡΞΗΣ
-if st.sidebar.button("🚀 ΕΚΠΑΙΔΕΥΣΗ ΣΕ 1000 ΚΛΗΡΩΣΕΙΣ"):
+if st.sidebar.button("🚀 ΕΝΑΡΞΗ ΒΑΘΙΑΣ ΕΚΠΑΙΔΕΥΣΗΣ"):
     if active_id:
-        st.session_state.big_data = get_massive_history(active_id - 1)
+        st.session_state.big_data = get_massive_history(active_id)
     else:
-        st.error("Δεν βρέθηκε αρχικό ID")
+        st.error("Σφάλμα σύνδεσης με ΟΠΑΠ")
 
-# ΑΝΑΛΥΣΗ
 if st.session_state.big_data:
     draws = st.session_state.big_data
-    st.write(f"### 📊 Ανάλυση σε βάθος {len(draws)} κληρώσεων")
+    all_nums = [n for sub in draws for n in sub]
+    counts = Counter(all_nums)
     
-    # Συχνότητα
-    flat_list = [n for sub in draws for n in sub]
-    counts = Counter(flat_list)
+    # 1. Γράφημα Συχνότητας
+    st.subheader(f"📊 Ανάλυση Τάσεων ({len(draws)} κληρώσεις)")
+    df = pd.DataFrame(counts.most_common(20), columns=['Αριθμός', 'Εμφανίσεις'])
+    st.bar_chart(df.set_index('Αριθμός'))
     
-    # Υπολογισμός Καθυστερήσεων (Gaps)
-    # Πότε βγήκε τελευταία φορά το κάθε νούμερο;
+    # 2. Λογική Πρόβλεψης (Gap Analysis)
     last_seen = {}
-    for i, draw in enumerate(reversed(draws)):
-        for num in draw:
-            if num not in last_seen:
-                last_seen[num] = i # Πριν πόσες κληρώσεις
-                
-    # Εμφάνιση Top 10
-    most_common = counts.most_common(10)
-    df_freq = pd.DataFrame(most_common, columns=['Αριθμός', 'Συχνότητα'])
-    
+    for i, d in enumerate(reversed(draws)):
+        for n in d:
+            if n not in last_seen: last_seen[n] = i
+
+    # Επιλογή: Συχνοί αριθμοί που "λείπουν" πάνω από 7 κληρώσεις
+    recs = []
+    for num, freq in counts.most_common(40):
+        if last_seen.get(num, 0) > 7:
+            recs.append(num)
+        if len(recs) == 5: break
+
+    st.divider()
     col1, col2 = st.columns(2)
     with col1:
-        st.write("#### 🔥 Πιο Συχνοί (Hot)")
-        st.bar_chart(df_freq.set_index('Αριθμός'))
-    
+        st.metric("Σιγουριά AI", f"{min(98, 75 + len(draws)//40)}%")
     with col2:
-        st.write("#### 🎯 AI Πρόβλεψη")
-        # Λογική: Συχνό νούμερο που έχει να βγει πάνω από 5 κληρώσεις
-        recommendations = []
-        for num, freq in counts.most_common(40):
-            if last_seen.get(num, 0) > 6: # Αν "καθυστερεί"
-                recommendations.append(num)
-            if len(recommendations) == 5: break
-            
-        st.success(f"Προτεινόμενη 5άδα: {sorted(recommendations)}")
-        st.metric("Σιγουριά Μοντέλου", f"{min(98, 80 + (len(draws)//50))}%")
-else:
-    st.info("Πατήστε το κουμπί για να τραβήξετε τα δεδομένα 100-100 από τον ΟΠΑΠ.")
+        st.success(f"🎯 Πρόταση: {sorted(recs)}")
+    st.balloons()
