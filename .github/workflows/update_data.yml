@@ -1,7 +1,7 @@
 name: Ultra Fast Kino Update
 on:
   schedule:
-    - cron: '*/5 * * * *' # Τρέχει κάθε 5 λεπτά από το σύστημα
+    - cron: '*/5 * * * *' # Τρέχει αυτόματα κάθε 5 λεπτά
   workflow_dispatch: # Σου επιτρέπει να το ξεκινάς χειροκίνητα
 
 jobs:
@@ -11,28 +11,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Fetch and Repeat
+      - name: Fetch Data
         run: |
           python -c "
-          import requests, pandas as pd, time
+          import requests, pandas as pd
           headers = {'User-Agent': 'Mozilla/5.0'}
-          
-          # Θα προσπαθήσει να κάνει 3 ενημερώσεις μέσα σε ένα 5λεπτο (ανά 90 δευτερόλεπτα)
-          for i in range(3):
-              try:
-                  print(f'Attempt {i+1}...')
-                  res = requests.get('https://api.opap.gr/draws/v3.0/1100/last/100', headers=headers).json()
-                  draws = [d['winningNumbers']['list'] for d in res]
-                  pd.DataFrame(draws).to_csv('kino_data.csv', index=False)
-                  print('Saved!')
-              except:
-                  print('Failed attempt')
-              time.sleep(90) 
+          try:
+              # Λήψη των τελευταίων 100 κληρώσεων
+              res = requests.get('https://api.opap.gr/draws/v3.0/1100/last/100', headers=headers, timeout=15).json()
+              draws = [d['winningNumbers']['list'] for d in res]
+              pd.DataFrame(draws).to_csv('kino_data.csv', index=False)
+              print('Data fetched and saved to CSV')
+          except Exception as e:
+              print(f'Error: {e}')
           "
       - name: Push to GitHub
         run: |
           git config --global user.name 'Kino Bot'
           git config --global user.email 'bot@kino.ai'
           git add kino_data.csv
-          git commit -m 'Fast Update' || exit 0
+          git commit -m 'Automatic Data Update' || exit 0
           git push
