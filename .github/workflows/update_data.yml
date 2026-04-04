@@ -1,8 +1,6 @@
 name: Update Kino Data
 on:
-  schedule:
-    - cron: '*/5 * * * *'
-  workflow_dispatch:
+  workflow_dispatch: # Μόνο χειροκίνητα για να το ελέγξουμε
 
 jobs:
   build:
@@ -24,19 +22,26 @@ jobs:
       - name: Fetch and Save
         run: |
           python -c "
-          import requests, pandas as pd
+          import requests, pandas as pd, sys
           headers = {'User-Agent': 'Mozilla/5.0'}
           try:
-              res = requests.get('https://api.opap.gr/draws/v3.0/1100/last/100', headers=headers).json()
-              draws = [d['winningNumbers']['list'] for d in res]
-              pd.DataFrame(draws).to_csv('kino_data.csv', index=False)
+              # Δοκιμάζουμε να πάρουμε μόνο τις τελευταίες 10 κληρώσεις για σιγουριά
+              res = requests.get('https://api.opap.gr/draws/v3.0/1100/last/10', headers=headers, timeout=20)
+              print(f'Status Code: {res.status_code}')
+              data = res.json()
+              
+              draws = [d['winningNumbers']['list'] for d in data]
+              df = pd.DataFrame(draws)
+              df.to_csv('kino_data.csv', index=False)
+              print('CSV Created Successfully!')
           except Exception as e:
-              print(e); exit(1)
+              print(f'Error detail: {e}')
+              sys.exit(1)
           "
       - name: Commit and Push
         run: |
           git config --global user.name 'github-actions'
           git config --global user.email 'github-actions@github.com'
           git add kino_data.csv
-          git commit -m "Auto update data" || exit 0
+          git commit -m "Manual data update" || exit 0
           git push
