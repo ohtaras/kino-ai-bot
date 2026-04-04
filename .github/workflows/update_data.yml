@@ -19,8 +19,7 @@ jobs:
           python-version: '3.10'
 
       - name: Install dependencies
-        run: |
-          pip install pandas requests
+        run: pip install pandas requests
 
       - name: Fetch and Save
         run: |
@@ -29,15 +28,14 @@ jobs:
           headers = {'User-Agent': 'Mozilla/5.0'}
           try:
               res = requests.get('https://api.opap.gr/draws/v3.0/1100/last/100', headers=headers).json()
-              # Έλεγχος αν πήραμε λίστα με δεδομένα
               if isinstance(res, list) and len(res) > 0:
                   draws = [d['winningNumbers']['list'] for d in res]
                   pd.DataFrame(draws).to_csv('kino_data.csv', index=False)
-                  print('Success: CSV created with 100 draws')
+                  print('Success!')
               else:
-                  print('Error: API returned no data'); exit(1)
+                  print('API error'); exit(1)
           except Exception as e:
-              print(f'Critical Error: {e}'); exit(1)
+              print(e); exit(1)
           "
       - name: Commit and Push
         run: |
