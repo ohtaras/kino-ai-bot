@@ -1,0 +1,40 @@
+name: Update Kino Data
+on:
+  schedule:
+    - cron: '*/15 * * * *' # Θα τρέχει μόνο του κάθε 15 λεπτά
+  workflow_dispatch: # Για να το τρέχεις εσύ όποτε θες
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+
+      - name: Fetch 100 Draws
+        run: |
+          python -c "
+          import requests, pandas as pd
+          try:
+              # Παίρνουμε τις τελευταίες 100 κληρώσεις
+              res = requests.get('https://api.opap.gr/draws/v3.0/1100/last/100').json()
+              draws = [d['winningNumbers']['list'] for d in res]
+              df = pd.DataFrame(draws)
+              df.to_csv('kino_data.csv', index=False)
+              print('Success: Data saved to CSV')
+          except Exception as e:
+              print(f'Error: {e}')
+          "
+
+      - name: Commit and Push
+        run: |
+          git config --global user.name 'GitHub Action'
+          git config --global user.email 'action@github.com'
+          git add kino_data.csv
+          git commit -m 'Auto-update Kino data' || exit 0
+          git push
