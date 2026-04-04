@@ -28,12 +28,8 @@ jobs:
           headers = {'User-Agent': 'Mozilla/5.0'}
           try:
               res = requests.get('https://api.opap.gr/draws/v3.0/1100/last/100', headers=headers).json()
-              if isinstance(res, list) and len(res) > 0:
-                  draws = [d['winningNumbers']['list'] for d in res]
-                  pd.DataFrame(draws).to_csv('kino_data.csv', index=False)
-                  print('Success!')
-              else:
-                  print('API error'); exit(1)
+              draws = [d['winningNumbers']['list'] for d in res]
+              pd.DataFrame(draws).to_csv('kino_data.csv', index=False)
           except Exception as e:
               print(e); exit(1)
           "
@@ -42,5 +38,5 @@ jobs:
           git config --global user.name 'github-actions'
           git config --global user.email 'github-actions@github.com'
           git add kino_data.csv
-          git commit -m "Auto update" || exit 0
+          git commit -m "Auto update data" || exit 0
           git push
