@@ -1,23 +1,23 @@
 name: Ultra Fast Kino Update
 on:
   schedule:
-    - cron: '*/5 * * * *' # Αυτόματο κάθε 5 λεπτά
-  workflow_dispatch: # Χειροκίνητο κουμπί
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
 
 jobs:
   update:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.10'
 
-      - name: Install Tools
-        run: pip install requests pandas # ΕΔΩ ΗΤΑΝ ΤΟ ΛΑΘΟΣ - ΤΩΡΑ ΤΑ ΕΓΚΑΘΙΣΤΑ
+      - name: Install dependencies
+        run: pip install requests pandas
 
       - name: Fetch Data
         run: |
@@ -28,15 +28,15 @@ jobs:
               res = requests.get('https://api.opap.gr/draws/v3.0/1100/last/100', headers=headers, timeout=15).json()
               draws = [d['winningNumbers']['list'] for d in res]
               pd.DataFrame(draws).to_csv('kino_data.csv', index=False)
-              print('Success: Data saved!')
+              print('Data saved successfully')
           except Exception as e:
-              print(f'Error: {e}')
+              print(f'Error occurred: {e}')
               exit(1)
           "
-      - name: Push to GitHub
+      - name: Commit and Push
         run: |
           git config --global user.name 'github-actions'
           git config --global user.email 'github-actions@github.com'
           git add kino_data.csv
-          git commit -m 'Fast Update' || exit 0
+          git commit -m 'Auto-update data' || exit 0
           git push
