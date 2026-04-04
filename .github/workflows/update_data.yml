@@ -1,40 +1,38 @@
-name: Update Kino Data
+name: Ultra Fast Kino Update
 on:
   schedule:
-    - cron: '*/15 * * * *' # Θα τρέχει μόνο του κάθε 15 λεπτά
-  workflow_dispatch: # Για να το τρέχεις εσύ όποτε θες
+    - cron: '*/5 * * * *' # Τρέχει κάθε 5 λεπτά από το σύστημα
+  workflow_dispatch: # Σου επιτρέπει να το ξεκινάς χειροκίνητα
 
 jobs:
-  build:
+  update:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.9'
-
-      - name: Fetch 100 Draws
+      - name: Fetch and Repeat
         run: |
           python -c "
-          import requests, pandas as pd
-          try:
-              # Παίρνουμε τις τελευταίες 100 κληρώσεις
-              res = requests.get('https://api.opap.gr/draws/v3.0/1100/last/100').json()
-              draws = [d['winningNumbers']['list'] for d in res]
-              df = pd.DataFrame(draws)
-              df.to_csv('kino_data.csv', index=False)
-              print('Success: Data saved to CSV')
-          except Exception as e:
-              print(f'Error: {e}')
+          import requests, pandas as pd, time
+          headers = {'User-Agent': 'Mozilla/5.0'}
+          
+          # Θα προσπαθήσει να κάνει 3 ενημερώσεις μέσα σε ένα 5λεπτο (ανά 90 δευτερόλεπτα)
+          for i in range(3):
+              try:
+                  print(f'Attempt {i+1}...')
+                  res = requests.get('https://api.opap.gr/draws/v3.0/1100/last/100', headers=headers).json()
+                  draws = [d['winningNumbers']['list'] for d in res]
+                  pd.DataFrame(draws).to_csv('kino_data.csv', index=False)
+                  print('Saved!')
+              except:
+                  print('Failed attempt')
+              time.sleep(90) 
           "
-
-      - name: Commit and Push
+      - name: Push to GitHub
         run: |
-          git config --global user.name 'GitHub Action'
-          git config --global user.email 'action@github.com'
+          git config --global user.name 'Kino Bot'
+          git config --global user.email 'bot@kino.ai'
           git add kino_data.csv
-          git commit -m 'Auto-update Kino data' || exit 0
+          git commit -m 'Fast Update' || exit 0
           git push
