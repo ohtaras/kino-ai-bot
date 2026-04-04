@@ -2,27 +2,28 @@ import streamlit as st
 import pandas as pd
 from collections import Counter
 
-st.set_page_config(page_title="Kino AI Engine", layout="wide")
+st.set_page_config(page_title="Kino AI: Live", layout="wide")
 
-st.title("🤖 Kino AI: Automated System")
+st.title("🎰 Kino AI: Automated System")
 
 try:
-    # Διαβάζει το αρχείο που φτιάχνει το GitHub Action
+    # Διαβάζει το αρχείο που φτιάχνει το GitHub αυτόματα
     df = pd.read_csv('kino_data.csv')
-    st.success(f"✅ Η μηχανή είναι online! (Δείγμα: {len(df)} κληρώσεις)")
+    st.success(f"✅ Δεδομένα ενεργά! (Τελευταίες {len(df)} κληρώσεις)")
     
-    # Ανάλυση
+    # Στατιστική ανάλυση
     draws = df.values.tolist()
-    all_numbers = [int(n) for sub in draws for n in sub]
-    counts = Counter(all_numbers)
+    flat = [int(n) for sub in draws for n in sub]
+    counts = Counter(flat)
     
-    # Πρόβλεψη
     st.subheader("🎯 AI Πρόταση")
-    top_picks = [item[0] for item in counts.most_common(5)]
-    st.success(f"Προτεινόμενα: {sorted(top_picks)}")
+    # Παίρνουμε τους 5 πιο συχνούς
+    top_5 = [item[0] for item in counts.most_common(5)]
+    st.success(f"Προτεινόμενη 5άδα: {sorted(top_5)}")
     
-    # Γράφημα
+    # Εμφάνιση γραφήματος
     st.bar_chart(df.melt()['value'].value_counts().head(20))
-
-except:
-    st.info("⏳ Ο 'εργάτης' του GitHub ετοιμάζει τα δεδομένα... Περίμενε 1-2 λεπτά και κάνε ανανέωση.")
+    
+except Exception as e:
+    st.info("⏳ Ο εργάτης του GitHub ετοιμάζει το αρχείο 'kino_data.csv'... Περίμενε λίγο και κάνε Refresh.")
+    st.write("Αν βλέπεις αυτό το μήνυμα, σημαίνει ότι το αρχείο δεν έχει δημιουργηθεί ακόμα στο GitHub σου.")
