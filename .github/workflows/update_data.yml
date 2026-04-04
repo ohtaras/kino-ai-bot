@@ -11,34 +11,39 @@ jobs:
       contents: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4 # Διορθώνει την προειδοποίηση Node.js
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      - name: Install pandas
-        run: pip install pandas requests # ΑΥΤΟ ΕΛΕΙΠΕ ΚΑΙ ΣΟΥ ΕΒΓΑΖΕ ΤΟ ΛΑΘΟΣ
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas requests
 
       - name: Fetch Data
         run: |
           python -c "
           import requests, pandas as pd
-          headers = {'User-Agent': 'Mozilla/5.0'}
+          headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
           try:
-              res = requests.get('https://api.opap.gr/draws/v3.0/1100/last/100', headers=headers, timeout=15).json()
-              draws = [d['winningNumbers']['list'] for d in res]
-              pd.DataFrame(draws).to_csv('kino_data.csv', index=False)
-              print('Success!')
+              res = requests.get('https://api.opap.gr/draws/v3.0/1100/last/100', headers=headers, timeout=20).json()
+              if isinstance(res, list):
+                  draws = [d['winningNumbers']['list'] for d in res]
+                  pd.DataFrame(draws).to_csv('kino_data.csv', index=False)
+                  print('Success: CSV Created')
+              else:
+                  print('Error: Unexpected API response format')
           except Exception as e:
-              print(e)
-              exit(1)
+              print(f'Error: {e}')
+              import sys; sys.exit(1)
           "
       - name: Commit and Push
         run: |
           git config --global user.name 'github-actions'
           git config --global user.email 'github-actions@github.com'
           git add kino_data.csv
-          git commit -m 'Auto-update' || exit 0
+          git commit -m 'Auto-update data' || exit 0
           git push
